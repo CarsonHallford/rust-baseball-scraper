@@ -12,3 +12,4 @@ chrono-tz = "0.6"
 rayon = "1.7"
 indicatif = "0.17"  
 polars = { version = "0.52.0", features = ["serde"] }
+serde = "1.0.228"
