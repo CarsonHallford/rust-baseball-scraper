@@ -63,7 +63,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut df = live_data_to_df(&live_data)?;
     println!("{:?}", df);
-   
+
     let mut file = std::fs::File::create("live_game_data.csv")?;
     CsvWriter::new(&mut file).finish(&mut df)?;
 

@@ -1,9 +1,10 @@
 use chrono::{DateTime, FixedOffset};
 use reqwest::blocking;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::error::Error;
 
-#[derive(Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct GameInfo {
     pub game_id: u64,
     pub time: String,

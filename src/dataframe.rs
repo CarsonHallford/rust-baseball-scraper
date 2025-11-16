@@ -77,6 +77,7 @@ pub fn live_data_to_df(live_data: &[Value]) -> Result<DataFrame, Box<dyn Error>>
                         // Batter / pitcher / team info
                         let matchup = play.get("matchup");
                         let about = play.get("about");
+                        let count = event.get("count");
 
                         game_id.push(game_pk);
                         game_date.push(game_date_val.clone());
@@ -134,17 +135,45 @@ pub fn live_data_to_df(live_data: &[Value]) -> Result<DataFrame, Box<dyn Error>>
                                 if let Some(teams) = teams {
                                     if is_top {
                                         (
-                                            teams.get("away").and_then(|t| t.get("abbreviation")).and_then(|s| s.as_str()).map(|s| s.to_string()),
-                                            teams.get("away").and_then(|t| t.get("id")).and_then(|v| v.as_u64()),
-                                            teams.get("home").and_then(|t| t.get("abbreviation")).and_then(|s| s.as_str()).map(|s| s.to_string()),
-                                            teams.get("home").and_then(|t| t.get("id")).and_then(|v| v.as_u64()),
+                                            teams
+                                                .get("away")
+                                                .and_then(|t| t.get("abbreviation"))
+                                                .and_then(|s| s.as_str())
+                                                .map(|s| s.to_string()),
+                                            teams
+                                                .get("away")
+                                                .and_then(|t| t.get("id"))
+                                                .and_then(|v| v.as_u64()),
+                                            teams
+                                                .get("home")
+                                                .and_then(|t| t.get("abbreviation"))
+                                                .and_then(|s| s.as_str())
+                                                .map(|s| s.to_string()),
+                                            teams
+                                                .get("home")
+                                                .and_then(|t| t.get("id"))
+                                                .and_then(|v| v.as_u64()),
                                         )
                                     } else {
                                         (
-                                            teams.get("home").and_then(|t| t.get("abbreviation")).and_then(|s| s.as_str()).map(|s| s.to_string()),
-                                            teams.get("home").and_then(|t| t.get("id")).and_then(|v| v.as_u64()),
-                                            teams.get("away").and_then(|t| t.get("abbreviation")).and_then(|s| s.as_str()).map(|s| s.to_string()),
-                                            teams.get("away").and_then(|t| t.get("id")).and_then(|v| v.as_u64()),
+                                            teams
+                                                .get("home")
+                                                .and_then(|t| t.get("abbreviation"))
+                                                .and_then(|s| s.as_str())
+                                                .map(|s| s.to_string()),
+                                            teams
+                                                .get("home")
+                                                .and_then(|t| t.get("id"))
+                                                .and_then(|v| v.as_u64()),
+                                            teams
+                                                .get("away")
+                                                .and_then(|t| t.get("abbreviation"))
+                                                .and_then(|s| s.as_str())
+                                                .map(|s| s.to_string()),
+                                            teams
+                                                .get("away")
+                                                .and_then(|t| t.get("id"))
+                                                .and_then(|v| v.as_u64()),
                                         )
                                     }
                                 } else {
@@ -234,9 +263,24 @@ pub fn live_data_to_df(live_data: &[Value]) -> Result<DataFrame, Box<dyn Error>>
                         );
 
                         // Dummy columns
-                        strikes.push(None);
-                        balls.push(None);
-                        outs.push(None);
+                        strikes.push(
+                            count
+                                .and_then(|d| d.get("strikes"))
+                                .and_then(|v| v.as_u64())
+                                .map(|v| v as u32),
+                        );
+                        balls.push(
+                            count
+                                .and_then(|d| d.get("balls"))
+                                .and_then(|v| v.as_u64())
+                                .map(|v| v as u32),
+                        );
+                        outs.push(
+                            count
+                                .and_then(|d| d.get("outs"))
+                                .and_then(|v| v.as_u64())
+                                .map(|v| v as u32),
+                        );
                         strikes_after.push(None);
                         balls_after.push(None);
                         outs_after.push(None);
@@ -245,7 +289,6 @@ pub fn live_data_to_df(live_data: &[Value]) -> Result<DataFrame, Box<dyn Error>>
             }
         }
     }
-
 
     // Construct DataFrame
     let df = DataFrame::new(vec![
