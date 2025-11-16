@@ -1,7 +1,10 @@
+mod dataframe;
 mod get_data;
 mod schedule;
 
+use dataframe::live_data_to_df;
 use get_data::get_data;
+use polars::prelude::*;
 use schedule::{GameInfo, fetch_game_schedule};
 use std::collections::HashSet;
 
@@ -52,9 +55,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // --- Fetch live data ---
     // Convert back to Vec<u64> for get_data
     let unique_game_ids: Vec<u64> = game_ids_set.into_iter().collect();
-    let live_data = get_data(&unique_game_ids)?;
+    let test_game_ids = vec![745444]; // example gamePk
+    let live_data = get_data(&test_game_ids)?;
+    //let live_data = get_data(&unique_game_ids)?;
 
     println!("Retrieved {} live game feeds.", live_data.len());
+
+    let mut df = live_data_to_df(&live_data)?;
+    println!("{:?}", df);
+   
+    let mut file = std::fs::File::create("live_game_data.csv")?;
+    CsvWriter::new(&mut file).finish(&mut df)?;
 
     Ok(())
 }
