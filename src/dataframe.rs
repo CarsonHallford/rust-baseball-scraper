@@ -46,113 +46,205 @@ pub fn live_data_to_df(live_data: &[Value]) -> Result<DataFrame, Box<dyn Error>>
     let whiff_list = ["S", "T", "W", "M", "Q", "O"];
 
     for game in live_data {
-    if let Some(all_plays) = game
-        .get("liveData")
-        .and_then(|d| d.get("plays"))
-        .and_then(|p| p.get("allPlays"))
-        .and_then(|ap| ap.as_array())
-    {
-        for play in all_plays {
-            // extract per-play info
-            let game_id_val = game.get("gamePk").and_then(|v| v.as_u64());
-            let game_date_val = game
-                .get("gameData")
-                .and_then(|d| d.get("datetime"))
-                .and_then(|dt| dt.get("officialDate"))
-                .and_then(|s| s.as_str())
-                .map(|s| s.to_string());
+        let game_pk = game.get("gamePk").and_then(|v| v.as_u64());
+        let game_date_val = game
+            .get("gameData")
+            .and_then(|d| d.get("datetime"))
+            .and_then(|dt| dt.get("officialDate"))
+            .and_then(|s| s.as_str())
+            .map(|s| s.to_string());
 
-            let (batter_id_val, batter_name_val, batter_hand_val, pitcher_id_val, pitcher_name_val, pitcher_hand_val) =
-                if let Some(matchup) = play.get("matchup") {
-                    (
-                        matchup.get("batter").and_then(|b| b.get("id")).and_then(|v| v.as_u64()),
-                        matchup.get("batter").and_then(|b| b.get("fullName")).and_then(|s| s.as_str()).map(|s| s.to_string()),
-                        matchup.get("batSide").and_then(|b| b.get("code")).and_then(|s| s.as_str()).map(|s| s.to_string()),
-                        matchup.get("pitcher").and_then(|p| p.get("id")).and_then(|v| v.as_u64()),
-                        matchup.get("pitcher").and_then(|p| p.get("fullName")).and_then(|s| s.as_str()).map(|s| s.to_string()),
-                        matchup.get("pitchHand").and_then(|h| h.get("code")).and_then(|s| s.as_str()).map(|s| s.to_string()),
-                    )
-                } else {
-                    (None, None, None, None, None, None)
-                };
+        if let Some(all_plays) = game
+            .get("liveData")
+            .and_then(|d| d.get("plays"))
+            .and_then(|p| p.get("allPlays"))
+            .and_then(|ap| ap.as_array())
+        {
+            for play in all_plays {
+                if let Some(events) = play.get("playEvents").and_then(|e| e.as_array()) {
+                    for event in events {
+                        let details = event.get("details");
 
-            // Determine teams and at-bat info
-            let (batter_team_val, batter_team_id_val, pitcher_team_val, pitcher_team_id_val, ab_number_val, inning_val) =
-                if let Some(about) = play.get("about") {
-                    if about.get("isTopInning").and_then(|v| v.as_bool()).unwrap_or(true) {
-                        (
-                            game.get("gameData").and_then(|d| d.get("teams")).and_then(|t| t.get("away")).and_then(|team| team.get("abbreviation")).and_then(|s| s.as_str()).map(|s| s.to_string()),
-                            game.get("gameData").and_then(|d| d.get("teams")).and_then(|t| t.get("away")).and_then(|team| team.get("id")).and_then(|v| v.as_u64()),
-                            game.get("gameData").and_then(|d| d.get("teams")).and_then(|t| t.get("home")).and_then(|team| team.get("abbreviation")).and_then(|s| s.as_str()).map(|s| s.to_string()),
-                            game.get("gameData").and_then(|d| d.get("teams")).and_then(|t| t.get("home")).and_then(|team| team.get("id")).and_then(|v| v.as_u64()),
-                            about.get("atBatIndex").and_then(|v| v.as_u64()).map(|v| v as u32),
-                            about.get("inning").and_then(|v| v.as_u64()).map(|v| v as u32),
-                        )
-                    } else {
-                        (
-                            game.get("gameData").and_then(|d| d.get("teams")).and_then(|t| t.get("home")).and_then(|team| team.get("abbreviation")).and_then(|s| s.as_str()).map(|s| s.to_string()),
-                            game.get("gameData").and_then(|d| d.get("teams")).and_then(|t| t.get("home")).and_then(|team| team.get("id")).and_then(|v| v.as_u64()),
-                            game.get("gameData").and_then(|d| d.get("teams")).and_then(|t| t.get("away")).and_then(|team| team.get("abbreviation")).and_then(|s| s.as_str()).map(|s| s.to_string()),
-                            game.get("gameData").and_then(|d| d.get("teams")).and_then(|t| t.get("away")).and_then(|team| team.get("id")).and_then(|v| v.as_u64()),
-                            about.get("atBatIndex").and_then(|v| v.as_u64()).map(|v| v as u32),
-                            about.get("inning").and_then(|v| v.as_u64()).map(|v| v as u32),
-                        )
+                        // Only include events where in_play is Some(true) or Some(false)
+                        let in_play_val = details
+                            .and_then(|d| d.get("isInPlay"))
+                            .and_then(|v| v.as_bool());
+
+                        if in_play_val.is_none() {
+                            continue; // skip events without a valid in_play
+                        }
+
+                        // Batter / pitcher / team info
+                        let matchup = play.get("matchup");
+                        let about = play.get("about");
+
+                        game_id.push(game_pk);
+                        game_date.push(game_date_val.clone());
+
+                        batter_id.push(
+                            matchup
+                                .and_then(|m| m.get("batter"))
+                                .and_then(|b| b.get("id"))
+                                .and_then(|v| v.as_u64()),
+                        );
+                        batter_name.push(
+                            matchup
+                                .and_then(|m| m.get("batter"))
+                                .and_then(|b| b.get("fullName"))
+                                .and_then(|s| s.as_str())
+                                .map(|s| s.to_string()),
+                        );
+                        batter_hand.push(
+                            matchup
+                                .and_then(|m| m.get("batSide"))
+                                .and_then(|b| b.get("code"))
+                                .and_then(|s| s.as_str())
+                                .map(|s| s.to_string()),
+                        );
+
+                        pitcher_id.push(
+                            matchup
+                                .and_then(|m| m.get("pitcher"))
+                                .and_then(|p| p.get("id"))
+                                .and_then(|v| v.as_u64()),
+                        );
+                        pitcher_name.push(
+                            matchup
+                                .and_then(|m| m.get("pitcher"))
+                                .and_then(|p| p.get("fullName"))
+                                .and_then(|s| s.as_str())
+                                .map(|s| s.to_string()),
+                        );
+                        pitcher_hand.push(
+                            matchup
+                                .and_then(|m| m.get("pitchHand"))
+                                .and_then(|h| h.get("code"))
+                                .and_then(|s| s.as_str())
+                                .map(|s| s.to_string()),
+                        );
+
+                        // Determine teams based on inning
+                        let (bat_team_val, bat_team_id_val, pit_team_val, pit_team_id_val) =
+                            if let Some(about) = about {
+                                let is_top = about
+                                    .get("isTopInning")
+                                    .and_then(|v| v.as_bool())
+                                    .unwrap_or(true);
+                                let teams = game.get("gameData").and_then(|d| d.get("teams"));
+                                if let Some(teams) = teams {
+                                    if is_top {
+                                        (
+                                            teams.get("away").and_then(|t| t.get("abbreviation")).and_then(|s| s.as_str()).map(|s| s.to_string()),
+                                            teams.get("away").and_then(|t| t.get("id")).and_then(|v| v.as_u64()),
+                                            teams.get("home").and_then(|t| t.get("abbreviation")).and_then(|s| s.as_str()).map(|s| s.to_string()),
+                                            teams.get("home").and_then(|t| t.get("id")).and_then(|v| v.as_u64()),
+                                        )
+                                    } else {
+                                        (
+                                            teams.get("home").and_then(|t| t.get("abbreviation")).and_then(|s| s.as_str()).map(|s| s.to_string()),
+                                            teams.get("home").and_then(|t| t.get("id")).and_then(|v| v.as_u64()),
+                                            teams.get("away").and_then(|t| t.get("abbreviation")).and_then(|s| s.as_str()).map(|s| s.to_string()),
+                                            teams.get("away").and_then(|t| t.get("id")).and_then(|v| v.as_u64()),
+                                        )
+                                    }
+                                } else {
+                                    (None, None, None, None)
+                                }
+                            } else {
+                                (None, None, None, None)
+                            };
+
+                        batter_team.push(bat_team_val);
+                        batter_team_id.push(bat_team_id_val);
+                        pitcher_team.push(pit_team_val);
+                        pitcher_team_id.push(pit_team_id_val);
+
+                        ab_number.push(
+                            about
+                                .and_then(|a| a.get("atBatIndex"))
+                                .and_then(|v| v.as_u64())
+                                .map(|v| v as u32),
+                        );
+                        inning.push(
+                            about
+                                .and_then(|a| a.get("inning"))
+                                .and_then(|v| v.as_u64())
+                                .map(|v| v as u32),
+                        );
+
+                        // Event details
+                        play_description.push(
+                            details
+                                .and_then(|d| d.get("description"))
+                                .and_then(|s| s.as_str())
+                                .map(|s| s.to_string()),
+                        );
+                        play_code.push(
+                            details
+                                .and_then(|d| d.get("code"))
+                                .and_then(|s| s.as_str())
+                                .map(|s| s.to_string()),
+                        );
+                        in_play.push(in_play_val);
+                        is_strike.push(
+                            details
+                                .and_then(|d| d.get("isStrike"))
+                                .and_then(|v| v.as_bool()),
+                        );
+                        is_swing.push(
+                            details
+                                .and_then(|d| d.get("code"))
+                                .and_then(|c| c.as_str())
+                                .map(|s| swing_list.contains(&s)),
+                        );
+                        is_whiff.push(
+                            details
+                                .and_then(|d| d.get("code"))
+                                .and_then(|c| c.as_str())
+                                .map(|s| whiff_list.contains(&s)),
+                        );
+                        is_out.push(
+                            details
+                                .and_then(|d| d.get("isOut"))
+                                .and_then(|v| v.as_bool()),
+                        );
+                        is_ball.push(
+                            details
+                                .and_then(|d| d.get("isBall"))
+                                .and_then(|v| v.as_bool()),
+                        );
+                        is_review.push(
+                            details
+                                .and_then(|d| d.get("hasReview"))
+                                .and_then(|v| v.as_bool()),
+                        );
+                        pitch_type.push(
+                            details
+                                .and_then(|d| d.get("type"))
+                                .and_then(|t| t.get("code"))
+                                .and_then(|s| s.as_str())
+                                .map(|s| s.to_string()),
+                        );
+                        pitch_description.push(
+                            details
+                                .and_then(|d| d.get("type"))
+                                .and_then(|t| t.get("description"))
+                                .and_then(|s| s.as_str())
+                                .map(|s| s.to_string()),
+                        );
+
+                        // Dummy columns
+                        strikes.push(None);
+                        balls.push(None);
+                        outs.push(None);
+                        strikes_after.push(None);
+                        balls_after.push(None);
+                        outs_after.push(None);
                     }
-                } else {
-                    (None, None, None, None, None, None)
-                };
-
-            // Extract playEvents
-            if let Some(events) = play.get("playEvents").and_then(|e| e.as_array()) {
-                for event in events {
-                    let details = event.get("details");
-
-                    // push every column **once per event**
-                    game_id.push(game_id_val);
-                    game_date.push(game_date_val.clone());
-                    batter_id.push(batter_id_val);
-                    batter_name.push(batter_name_val.clone());
-                    batter_hand.push(batter_hand_val.clone());
-                    batter_team.push(batter_team_val.clone());
-                    batter_team_id.push(batter_team_id_val);
-                    pitcher_id.push(pitcher_id_val);
-                    pitcher_name.push(pitcher_name_val.clone());
-                    pitcher_hand.push(pitcher_hand_val.clone());
-                    pitcher_team.push(pitcher_team_val.clone());
-                    pitcher_team_id.push(pitcher_team_id_val);
-                    ab_number.push(ab_number_val);
-                    inning.push(inning_val);
-
-                    play_description.push(
-                        details.and_then(|d| d.get("description")).and_then(|s| s.as_str()).map(|s| s.to_string())
-                    );
-                    play_code.push(
-                        details.and_then(|d| d.get("code")).and_then(|s| s.as_str()).map(|s| s.to_string())
-                    );
-                    in_play.push(details.and_then(|d| d.get("isInPlay")).and_then(|v| v.as_bool()));
-                    is_strike.push(details.and_then(|d| d.get("isStrike")).and_then(|v| v.as_bool()));
-
-                    // You can keep your swing/whiff logic here
-                    is_swing.push(details.and_then(|d| d.get("code")).and_then(|c| c.as_str()).map(|s| swing_list.contains(&s)));
-                    is_whiff.push(details.and_then(|d| d.get("code")).and_then(|c| c.as_str()).map(|s| whiff_list.contains(&s)));
-
-                    is_out.push(details.and_then(|d| d.get("isOut")).and_then(|v| v.as_bool()));
-                    is_ball.push(details.and_then(|d| d.get("isBall")).and_then(|v| v.as_bool()));
-                    is_review.push(details.and_then(|d| d.get("hasReview")).and_then(|v| v.as_bool()));
-                    pitch_type.push(details.and_then(|d| d.get("type")).and_then(|t| t.get("code")).and_then(|s| s.as_str()).map(|s| s.to_string()));
-                    pitch_description.push(details.and_then(|d| d.get("type")).and_then(|t| t.get("description")).and_then(|s| s.as_str()).map(|s| s.to_string()));
-
-                    strikes.push(None);
-                    balls.push(None);
-                    outs.push(None);
-                    strikes_after.push(None);
-                    balls_after.push(None);
-                    outs_after.push(None);
                 }
             }
         }
     }
-}
 
 
     // Construct DataFrame
