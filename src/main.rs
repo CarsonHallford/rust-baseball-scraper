@@ -10,9 +10,10 @@ use std::collections::HashSet;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // --- Fetch schedule ---
+
     let games = fetch_game_schedule(1, "R", 2025)?;
 
-    println!("Found {} games:", games.len());
+   /* println!("Found {} games:", games.len());
     println!(
         "{:<10} {:<20} {:<12} {:<20} {:<8} {:<20} {:<8} {:<6} {:<8} {:<20} {:<6}",
         "Game ID",
@@ -30,6 +31,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("{}", "-".repeat(140));
 
     for g in &games {
+
         println!(
             "{:<10} {:<20} {:<12} {:<20} {:<8} {:<20} {:<8} {:<6} {:<8} {:<20} {:<6}",
             g.game_id,
@@ -43,8 +45,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             g.venue_id,
             g.venue_name,
             g.gameday_type
+
+
         );
+
+
     }
+
+    */
+
+
 
     // --- Fetch unique game IDs ---
     let mut game_ids_set = HashSet::new();
