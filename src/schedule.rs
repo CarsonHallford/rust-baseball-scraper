@@ -84,7 +84,7 @@ pub fn fetch_game_schedule(
                             .get("status")
                             .and_then(|s| s.get("abstractGameState"))
                             .and_then(|st| st.as_str())
-                            .map(|s| s.chars().next().unwrap_or_default().to_string()) // Take first char
+                            .map(|s| s.chars().next().unwrap_or_default().to_string()) // Take the first char
                             .unwrap_or_default(),
                         venue_id: game
                             .get("venue")

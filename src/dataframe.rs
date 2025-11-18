@@ -35,6 +35,7 @@ pub fn live_data_to_df(live_data: &[Value]) -> Result<DataFrame, Box<dyn Error>>
     let mut balls: Vec<Option<u32>> = Vec::new();
     let mut outs: Vec<Option<u32>> = Vec::new();
 	let mut start_speed: Vec<Option<f64>> = Vec::new();
+    let mut ivb: Vec<Option<f64>> = Vec::new();
     let mut strikes_after: Vec<Option<u32>> = Vec::new();
     let mut balls_after: Vec<Option<u32>> = Vec::new();
     let mut outs_after: Vec<Option<u32>> = Vec::new();
@@ -261,7 +262,6 @@ pub fn live_data_to_df(live_data: &[Value]) -> Result<DataFrame, Box<dyn Error>>
                                 .and_then(|s| s.as_str())
                                 .map(|s| s.to_string()),
                         );
-
                         strikes.push(
                             count
                                 .and_then(|d| d.get("strikes"))
@@ -284,7 +284,12 @@ pub fn live_data_to_df(live_data: &[Value]) -> Result<DataFrame, Box<dyn Error>>
                             pitch_data
                                 .and_then(|d| d.get("startSpeed"))
                                 .and_then(|v| v.as_f64()),
-                                
+                        );
+                        ivb.push(
+                            pitch_data
+                                .and_then(|d| d.get("breaks"))
+                                .and_then(|b| b.get("breakVerticalInduced"))
+                                .and_then(|v| v.as_f64()),
                         );
                         strikes_after.push(None);
                         balls_after.push(None);
@@ -326,6 +331,7 @@ pub fn live_data_to_df(live_data: &[Value]) -> Result<DataFrame, Box<dyn Error>>
         Series::new("balls".into(), balls).into(),
         Series::new("outs".into(), outs).into(),
 		Series::new("start_speed".into(), start_speed).into(),
+        Series::new("ivb".into(), ivb).into(),
         Series::new("strikes_after".into(), strikes_after).into(),
         Series::new("balls_after".into(), balls_after).into(),
         Series::new("outs_after".into(), outs_after).into(),
