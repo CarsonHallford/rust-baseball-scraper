@@ -333,3 +333,4 @@ pub fn live_data_to_df(live_data: &[Value]) -> Result<DataFrame, Box<dyn Error>>
 
     Ok(df)
 }
+

@@ -19,6 +19,7 @@ pub struct GameInfo {
     pub gameday_type: String,
 }
 
+
 pub fn fetch_game_schedule(
     sport_id: u32,
     game_type: &str,
