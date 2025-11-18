@@ -34,11 +34,10 @@ pub fn live_data_to_df(live_data: &[Value]) -> Result<DataFrame, Box<dyn Error>>
     let mut strikes: Vec<Option<u32>> = Vec::new();
     let mut balls: Vec<Option<u32>> = Vec::new();
     let mut outs: Vec<Option<u32>> = Vec::new();
+	let mut start_speed: Vec<Option<f64>> = Vec::new();
     let mut strikes_after: Vec<Option<u32>> = Vec::new();
     let mut balls_after: Vec<Option<u32>> = Vec::new();
     let mut outs_after: Vec<Option<u32>> = Vec::new();
-
-    
 
     let swing_list = [
         "X", "F", "S", "D", "E", "T", "W", "L", "M", "Q", "Z", "R", "O", "J",
@@ -78,6 +77,7 @@ pub fn live_data_to_df(live_data: &[Value]) -> Result<DataFrame, Box<dyn Error>>
                         let matchup = play.get("matchup");
                         let about = play.get("about");
                         let count = event.get("count");
+						let pitch_data = event.get("pitchData");
 
                         game_id.push(game_pk);
                         game_date.push(game_date_val.clone());
@@ -262,7 +262,6 @@ pub fn live_data_to_df(live_data: &[Value]) -> Result<DataFrame, Box<dyn Error>>
                                 .map(|s| s.to_string()),
                         );
 
-                        // Dummy columns
                         strikes.push(
                             count
                                 .and_then(|d| d.get("strikes"))
@@ -280,6 +279,12 @@ pub fn live_data_to_df(live_data: &[Value]) -> Result<DataFrame, Box<dyn Error>>
                                 .and_then(|d| d.get("outs"))
                                 .and_then(|v| v.as_u64())
                                 .map(|v| v as u32),
+                        );
+                        start_speed.push(
+                            pitch_data
+                                .and_then(|d| d.get("startSpeed"))
+                                .and_then(|v| v.as_f64()),
+                                
                         );
                         strikes_after.push(None);
                         balls_after.push(None);
@@ -320,6 +325,7 @@ pub fn live_data_to_df(live_data: &[Value]) -> Result<DataFrame, Box<dyn Error>>
         Series::new("strikes".into(), strikes).into(),
         Series::new("balls".into(), balls).into(),
         Series::new("outs".into(), outs).into(),
+		Series::new("start_speed".into(), start_speed).into(),
         Series::new("strikes_after".into(), strikes_after).into(),
         Series::new("balls_after".into(), balls_after).into(),
         Series::new("outs_after".into(), outs_after).into(),
