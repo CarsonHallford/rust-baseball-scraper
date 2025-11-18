@@ -38,7 +38,7 @@ pub fn live_data_to_df(live_data: &[Value]) -> Result<DataFrame, Box<dyn Error>>
     let mut balls_after: Vec<Option<u32>> = Vec::new();
     let mut outs_after: Vec<Option<u32>> = Vec::new();
 
-    // You can continue adding all other pitch / hit columns similarly...
+    
 
     let swing_list = [
         "X", "F", "S", "D", "E", "T", "W", "L", "M", "Q", "Z", "R", "O", "J",
