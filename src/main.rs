@@ -13,7 +13,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let games = fetch_game_schedule(1, "R", 2025)?;
 
-   /* println!("Found {} games:", games.len());
+    /* println!("Found {} games:", games.len());
     println!(
         "{:<10} {:<20} {:<12} {:<20} {:<8} {:<20} {:<8} {:<6} {:<8} {:<20} {:<6}",
         "Game ID",
@@ -54,8 +54,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     */
 
-
-
     // --- Fetch unique game IDs ---
     let mut game_ids_set = HashSet::new();
     for g in &games {
@@ -79,4 +77,3 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
-

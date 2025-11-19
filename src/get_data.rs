@@ -34,4 +34,3 @@ pub fn get_data(game_list_input: &[u64]) -> Result<Vec<Value>, Box<dyn Error>> {
 
     Ok(data_total)
 }
-

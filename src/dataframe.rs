@@ -34,13 +34,16 @@ pub fn live_data_to_df(live_data: &[Value]) -> Result<DataFrame, Box<dyn Error>>
     let mut strikes: Vec<Option<u32>> = Vec::new();
     let mut balls: Vec<Option<u32>> = Vec::new();
     let mut outs: Vec<Option<u32>> = Vec::new();
-	let mut start_speed: Vec<Option<f64>> = Vec::new();
+    let mut start_speed: Vec<Option<f64>> = Vec::new();
     let mut ivb: Vec<Option<f64>> = Vec::new();
     let mut vb: Vec<Option<f64>> = Vec::new();
     let mut hb: Vec<Option<f64>> = Vec::new();
     let mut strikes_after: Vec<Option<u32>> = Vec::new();
     let mut balls_after: Vec<Option<u32>> = Vec::new();
     let mut outs_after: Vec<Option<u32>> = Vec::new();
+    let mut zone: Vec<Option<u32>> = Vec::new();
+    let mut extension: Vec<Option<f64>> = Vec::new();
+    let mut spin_rate: Vec<Option<u32>> = Vec::new();
 
     let swing_list = [
         "X", "F", "S", "D", "E", "T", "W", "L", "M", "Q", "Z", "R", "O", "J",
@@ -80,7 +83,7 @@ pub fn live_data_to_df(live_data: &[Value]) -> Result<DataFrame, Box<dyn Error>>
                         let matchup = play.get("matchup");
                         let about = play.get("about");
                         let count = event.get("count");
-						let pitch_data = event.get("pitchData");
+                        let pitch_data = event.get("pitchData");
 
                         game_id.push(game_pk);
                         game_date.push(game_date_val.clone());
@@ -305,6 +308,24 @@ pub fn live_data_to_df(live_data: &[Value]) -> Result<DataFrame, Box<dyn Error>>
                                 .and_then(|b| b.get("breakHorizontal"))
                                 .and_then(|v| v.as_f64()),
                         );
+                        zone.push(
+                            pitch_data
+                                .and_then(|d| d.get("zone"))
+                                .and_then(|v| v.as_u64())
+                                .map(|v| v as u32),
+                        );
+                        extension.push(
+                            pitch_data
+                                .and_then(|d| d.get("extension"))
+                                .and_then(|v| v.as_f64()),
+                        );
+                        spin_rate.push(
+                            pitch_data
+                                .and_then(|d| d.get("breaks"))
+                                .and_then(|b| b.get("spinRate"))
+                                .and_then(|v| v.as_u64())
+                                .map(|v| v as u32),
+                        );
                         strikes_after.push(None);
                         balls_after.push(None);
                         outs_after.push(None);
@@ -344,10 +365,13 @@ pub fn live_data_to_df(live_data: &[Value]) -> Result<DataFrame, Box<dyn Error>>
         Series::new("strikes".into(), strikes).into(),
         Series::new("balls".into(), balls).into(),
         Series::new("outs".into(), outs).into(),
-		Series::new("start_speed".into(), start_speed).into(),
+        Series::new("zone".into(), zone).into(),
+        Series::new("start_speed".into(), start_speed).into(),
         Series::new("ivb".into(), ivb).into(),
         Series::new("vb".into(), vb).into(),
         Series::new("hb".into(), hb).into(),
+        Series::new("spin_rate".into(), spin_rate).into(),
+        Series::new("extension".into(), extension).into(),
         Series::new("strikes_after".into(), strikes_after).into(),
         Series::new("balls_after".into(), balls_after).into(),
         Series::new("outs_after".into(), outs_after).into(),
@@ -355,4 +379,3 @@ pub fn live_data_to_df(live_data: &[Value]) -> Result<DataFrame, Box<dyn Error>>
 
     Ok(df)
 }
-
