@@ -37,6 +37,7 @@ pub fn live_data_to_df(live_data: &[Value]) -> Result<DataFrame, Box<dyn Error>>
 	let mut start_speed: Vec<Option<f64>> = Vec::new();
     let mut ivb: Vec<Option<f64>> = Vec::new();
     let mut vb: Vec<Option<f64>> = Vec::new();
+    let mut hb: Vec<Option<f64>> = Vec::new();
     let mut strikes_after: Vec<Option<u32>> = Vec::new();
     let mut balls_after: Vec<Option<u32>> = Vec::new();
     let mut outs_after: Vec<Option<u32>> = Vec::new();
@@ -298,6 +299,12 @@ pub fn live_data_to_df(live_data: &[Value]) -> Result<DataFrame, Box<dyn Error>>
                                 .and_then(|b| b.get("breakVertical"))
                                 .and_then(|v| v.as_f64()),
                         );
+                        hb.push(
+                            pitch_data
+                                .and_then(|d| d.get("breaks"))
+                                .and_then(|b| b.get("breakHorizontal"))
+                                .and_then(|v| v.as_f64()),
+                        );
                         strikes_after.push(None);
                         balls_after.push(None);
                         outs_after.push(None);
@@ -340,6 +347,7 @@ pub fn live_data_to_df(live_data: &[Value]) -> Result<DataFrame, Box<dyn Error>>
 		Series::new("start_speed".into(), start_speed).into(),
         Series::new("ivb".into(), ivb).into(),
         Series::new("vb".into(), vb).into(),
+        Series::new("hb".into(), hb).into(),
         Series::new("strikes_after".into(), strikes_after).into(),
         Series::new("balls_after".into(), balls_after).into(),
         Series::new("outs_after".into(), outs_after).into(),
